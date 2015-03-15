@@ -1,4 +1,4 @@
-# CryptoCurrencyPHP
+# Crypto Currency for PHP
 
 A collection of common utilities and libraries in PHP for use with Bitcoin and Zetacoin compatable crypto currencies ustilizing the secp256k ECDSA curve.
 
