@@ -82,4 +82,4 @@ Gives you:
 Address = ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed
 ```
 
-Based on work by Jan Moritz Lindemann, Matyas Danter, and Joey Hewitt
+The items in the repository may contain some derivative work based on Jan Moritz Lindemann, Matyas Danter, and Joey Hewitt
