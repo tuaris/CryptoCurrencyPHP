@@ -20,7 +20,12 @@ The current implementation requires the php5-gmp extension.
 
 ### AddressCodec
 
-The AddressCodec class provides a simple interface for common Zetacoin/Bitcoin (and compatable) address functions.  
+The AddressCodec class provides a simple interface for common Zetacoin/Bitcoin (and compatable) address functions.  Load the following classes in your PHP code:
+```PHP
+include 'Base58.class.php';
+include 'PointMathGMP.class.php';
+include 'AddressCodec.class.php';
+```
 
 The most basic example, get the X and Y coordnates of a DER Encoded public key (old format)
 ```PHP
