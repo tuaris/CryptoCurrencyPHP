@@ -1,12 +1,24 @@
 <?php
 /* 
- * Alternative version of PHPECC (see: https://github.com/tuaris/PHPECC)
+ * Private Key
+ * For Bitcoin/Zetacoin compatable Crypto Currency utilizing the secp256k1 curve
  * @author Daniel Morante
  * Some parts may contain work based on Jan Moritz Lindemann, Matyas Danter, and Joey Hewitt
 */
 
- class ECDSA{
+ class PrivateKey{
  
+    public $k;
+
+    public function __construct($private_key = null){
+		if (empty($private_key)){
+			$this->generateRandomPrivateKey();
+		}
+		else{
+			$this->setPrivateKey($private_key);
+		}
+    }
+
     /***
      * Generate a new random private key.
      * The extra parameter can be some random data typed down by the user or mouse movements to add randomness.
@@ -16,6 +28,9 @@
      */
     public function generateRandomPrivateKey($extra = 'FSQF5356dsdsqdfEFEQ3fq4q6dq4s5d')
     {
+		$secp256k1 = new SECp256k1();
+		$n = $secp256k1->n;
+
         //private key has to be passed as an hexadecimal number
         do { //generate a new random private key until to find one that is valid
             $bytes      = openssl_random_pseudo_bytes(256, $cStrong);
@@ -28,7 +43,7 @@
                 throw new \Exception('Your system is not able to generate strong enough random numbers');
             }
 
-        } while(gmp_cmp(gmp_init($this->k, 16), gmp_sub($this->n, gmp_init(1, 10))) == 1);
+        } while(gmp_cmp(gmp_init($this->k, 16), gmp_sub($n, gmp_init(1, 10))) == 1);
     }
 
     /***
@@ -49,8 +64,11 @@
      */
     public function setPrivateKey($k)
     {
+		$secp256k1 = new SECp256k1();
+		$n = $secp256k1->n;
+        
         //private key has to be passed as an hexadecimal number
-        if(gmp_cmp(gmp_init($k, 16), gmp_sub($this->n, gmp_init(1, 10))) == 1)
+        if(gmp_cmp(gmp_init($k, 16), gmp_sub($n, gmp_init(1, 10))) == 1)
         {
             throw new \Exception('Private Key is not in the 1,n-1 range');
         }
@@ -65,7 +83,11 @@
      */
     public function getPubKeyPoints()
     {
-        $G = $this->G;
+        $secp256k1 = new SECp256k1();
+		$G = $secp256k1->G;
+		$a = $secp256k1->a;
+		$b = $secp256k1->b;
+		$p = $secp256k1->p;
         $k = $this->k;
 
         if(!isset($this->k))
@@ -73,8 +95,11 @@
             throw new \Exception('No Private Key was defined');
         }
 
-        $pubKey 	    = $this->mulPoint($k,
-                                          array('x' => $G['x'], 'y' => $G['y'])
+        $pubKey 	    = PointMathGMP::mulPoint($k,
+                                          array('x' => $G['x'], 'y' => $G['y']),
+										  $a,
+										  $b,
+										  $p
                                  );
 
         $pubKey['x']	= gmp_strval($pubKey['x'], 16);

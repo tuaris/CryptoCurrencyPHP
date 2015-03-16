@@ -56,9 +56,10 @@ class AddressCodec{
             //compressed der encoded public key
             $x = substr($compressedDerPubKey, 2, 64);
 			// secp256k1
-			$a = gmp_init('0', 10);
-			$b = gmp_init('7', 10);
-			$p = gmp_init('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F', 16);
+			$secp256k1 = new SECp256k1();
+			$a = $secp256k1->a;
+			$b = $secp256k1->b;
+			$p = $secp256k1->p;
 			// This is where the magic happens
             $y = PointMathGMP::calculateYWithX($x, $a, $b, $p, substr($compressedDerPubKey, 0, 2));
             return array('x' => $x, 'y' => $y);

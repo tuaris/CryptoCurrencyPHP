@@ -10,32 +10,6 @@
 
 class AddressValidation {
 
-	public $networkPrefix;
-
-	public function __construct(){
-		$this->networkPrefix = '00';
-	}
-
-    /***
-     * Set the network prefix, '00' = main network, '6f' = test network.
-     *
-     * @param String Hex $prefix
-     */
-    public function setNetworkPrefix($prefix)
-    {
-        $this->networkPrefix = $prefix;
-    }
-
-    /**
-     * Returns the current network prefix, '00' = main network, '6f' = test network.
-     *
-     * @return String Hex
-     */
-    public function getNetworkPrefix()
-    {
-        return $this->networkPrefix;
-    }
-
     /***
      * Tests if the address is valid or not.
      *
