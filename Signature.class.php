@@ -113,10 +113,10 @@ class Signature {
      * binary number between 28 and 35 inclusive
      * if the flag is > 30 then the address is compressed.
      *
-     * @param $flag
-     * @param $R
-     * @param $S
-     * @param $hash
+     * @param $flag (INT)
+     * @param $R (HEX String)
+     * @param $S (HEX String)
+     * @param $hash (HEX String)
      * @return array
      */
     public static function getPubKeyWithRS($flag, $R, $S, $hash)
@@ -212,7 +212,6 @@ class Signature {
 
         $derPubKey = AddressCodec::Compress($pubKey);
 
-
         if(self::checkSignaturePoints($derPubKey, $R, $S, $hash)){
             return $derPubKey;
 		}
@@ -221,6 +220,79 @@ class Signature {
 		}
 
     }
+
+	public static function recoverPublicKey_HEX($flag, $R, $S, $hash){
+		return self::recoverPublicKey(gmp_init($R,16), gmp_init($S,16), gmp_init($hash,16), $flag);
+	}
+	
+	// $R, $S, and $hash are GMP
+	// $recoveryFlags is INT
+	public static function recoverPublicKey($R, $S, $hash, $recoveryFlags){
+		$secp256k1 = new SECp256k1();
+		$a = $secp256k1->a;
+		$b = $secp256k1->b;
+		$G = $secp256k1->G;
+		$n = $secp256k1->n;
+		$p = $secp256k1->p;
+
+		$isYEven = ($recoveryFlags & 1) != 0;
+		$isSecondKey = ($recoveryFlags & 2) != 0;
+
+		// PointMathGMP::mulPoint wants HEX String
+		$e = gmp_strval($hash, 16);
+		$s = gmp_strval($S, 16);
+
+		// Precalculate (p + 1) / 4 where p is the field order
+		// $p_over_four is GMP
+		static $p_over_four; // XXX just assuming only one curve/prime will be used
+		if (!$p_over_four) {
+			$p_over_four = gmp_div(gmp_add($p, 1), 4);
+		}
+
+		// 1.1 Compute x
+		// $x is GMP
+		if (!$isSecondKey) {
+			$x = $R;
+		} else {
+			$x = gmp_add($R, $n);
+		}
+
+		// 1.3 Convert x to point
+		// $alpha is GMP
+		$alpha = gmp_mod(gmp_add(gmp_add(gmp_pow($x, 3), gmp_mul($a, $x)), $b), $p);
+		// $beta is DEC String (INT)
+		$beta = gmp_strval(gmp_powm($alpha, $p_over_four, $p));
+
+		// If beta is even, but y isn't or vice versa, then convert it,
+		// otherwise we're done and y == beta.
+		if (PointMathGMP::isEvenNumber($beta) == $isYEven) {
+			// gmp_sub function will convert the DEC String "$beta" into a GMP
+			// $y is a GMP 
+			$y = gmp_sub($p, $beta);
+		} else {
+			// $y is a GMP
+			$y = gmp_init($beta);
+		}
+
+		// 1.4 Check that nR is at infinity (implicitly done in construtor) -- Not reallly
+		// $Rpt is Array(GMP, GMP)
+		$Rpt = array('x' => $x, 'y' => $y);
+
+		// 1.6.1 Compute a candidate public key Q = r^-1 (sR - eG)
+		// $rInv is a DEC String (INT)
+		$rInv = gmp_strval(gmp_invert($R, $n));
+		// $eGNeg is Array (GMP, GMP)
+		$eGNeg = PointMathGMP::negatePoint(PointMathGMP::mulPoint($e, $G, $a, $b, $p));
+		// $Q is Array (GMP, GMP)
+		$Q = PointMathGMP::mulPoint($rInv, PointMathGMP::addPoints(PointMathGMP::mulPoint($s, $Rpt, $a, $b, $p), $eGNeg, $a, $p), $a, $b, $p);
+
+		// Q is the derrived public key
+		// $pubkey is Array (HEX String, HEX String)
+        $pubKey['x'] = gmp_strval($Q['x'], 16);
+        $pubKey['y'] = gmp_strval($Q['y'], 16);
+
+		return $pubKey;
+	}
 
     /***
      * Check signature with public key R & S values of the signature and the message hash.

@@ -12,12 +12,9 @@ class Wallet{
 	private $PREFIX;
 	private $NETWORK;
 
-	public function __construct(PrivateKey $private_key, $networkPrefix = '00', $networkName = 'Bitcoin'){
+	public function __construct(PrivateKey $private_key = null, $networkPrefix = '00', $networkName = 'Bitcoin'){
 		// Private key
-		if(empty($private_key)){
-			throw new \Exception('Wallet requires a private key');
-		}
-		else{
+		if(!empty($private_key)){
 			$this->PRIVATE_KEY = $private_key;
 		}
 
@@ -75,15 +72,25 @@ class Wallet{
      * @return String Base58
      */
     public function getAddress(){
-		$PubKeyPoints = $this->PRIVATE_KEY->getPubKeyPoints();
+		$PubKeyPoints = $this->getPrivateKey()->getPubKeyPoints();
 		$DERPubkey = AddressCodec::Compress($PubKeyPoints);
         return AddressCodec::Encode(AddressCodec::Hash($DERPubkey), $this->PREFIX);
     }
 	
 	public function getUncompressedAddress(){
-		$PubKeyPoints = $this->PRIVATE_KEY->getPubKeyPoints();
+		$PubKeyPoints = $this->getPrivateKey()->getPubKeyPoints();
 		return AddressCodec::Hex(AddressCodec::Hash($PubKeyPoints));
 	}
+
+	private function getPrivateKey(){
+		if(empty($this->PRIVATE_KEY)){
+			throw new \Exception('Wallet does not have a private key');
+		}
+		else{
+			return $this->PRIVATE_KEY;
+		}
+	}
+
     /***
      * Satoshi client's standard message signature implementation.
      *
@@ -99,7 +106,7 @@ class Wallet{
         $hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)). $message);
         $points = Signature::getSignatureHashPoints(
                                                 $hash,
-												$this->PRIVATE_KEY->getPrivateKey(),
+												$this->getPrivateKey()->getPrivateKey(),
                                                 $nonce
                    );
 
@@ -128,7 +135,7 @@ class Wallet{
                 $flag += 4;
             $flag += $i;
 
-            $pubKeyPts =$this->PRIVATE_KEY->getPubKeyPoints();
+            $pubKeyPts =$this->getPrivateKey()->getPubKeyPoints();
             //echo "\nReal pubKey : \n";
             //print_r($pubKeyPts);
 
@@ -165,39 +172,49 @@ class Wallet{
     {
         //recover message.
         preg_match_all("#-----BEGIN " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----\n(.{0,})\n-----BEGIN SIGNATURE-----\n#USi", $rawMessage, $out);
-        $message = $out[1][0];
+        $message = $out[1][0]; FB::log($message);
 
         preg_match_all("#\n-----BEGIN SIGNATURE-----\n(.{0,})\n(.{0,})\n-----END " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----#USi", $rawMessage, $out);
-        $address = $out[1][0];
-        $signature = $out[2][0];
+        $address = $out[1][0]; FB::log($address);
+        $signature = $out[2][0]; FB::log($signature);
 
+		// This version fails due to number conversions
+        //return $this->checkSignedMessage($address, $signature, $message);
         return $this->checkSignatureForMessage($address, $signature, $message);
     }
 
     /***
      * checks the signature of a bitcoin signed message.
      *
-     * @param $address
-     * @param $encodedSignature
-     * @param $message
+     * @param $address String
+     * @param $encodedSignature String
+     * @param $message String
      * @return bool
      */
     public function checkSignatureForMessage($address, $encodedSignature, $message)
     {
-        $hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
-
+        // $hash is HEX String
+		$hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
 
         //recover flag
+
+		// $signature is BIN
         $signature = base64_decode($encodedSignature);
 
+		// $flag is INT
         $flag = hexdec(bin2hex(substr($signature, 0, 1)));
 
-        $R = bin2hex(substr($signature, 1, 64));
-        $S = bin2hex(substr($signature, 65, 64));
+		// Convert BIN to HEX String
+        $R = bin2hex(substr($signature, 1, 32));
+        $S = bin2hex(substr($signature, 33, 64));
 
         $derPubKey = Signature::getPubKeyWithRS($flag, $R, $S, $hash);
-		FB::log($derPubKey);
-        $recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($derPubKey));
+        $recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($derPubKey), $this->PREFIX);
+
+		/* This version works most of the time, but still fails due to number conversions
+		$pubkeyPoint = Signature::recoverPublicKey_HEX($flag, $R, $S, $hash);
+		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash(AddressCodec::Compress($pubkeyPoint)), $this->PREFIX);
+		*/
 
         if($address == $recoveredAddress)
             return true;
@@ -205,7 +222,53 @@ class Wallet{
             return false;
     }
 	
-	
+	// Same as above - But not working correctly
+	// All Paramaters are Strings
+	public function checkSignedMessage($address, $encodedSignature, $message){
+		// $signature is BIN
+		$signature = base64_decode($encodedSignature, true);
+		
+		// $recoveryFlags is INT
+		//$recoveryFlags = ord($signature[0]) - 27;
+		$recoveryFlags = hexdec(bin2hex(substr($signature, 0, 1)));
+
+		/*
+		if ($recoveryFlags < 0 || $recoveryFlags > 7) {
+			throw new InvalidArgumentException('invalid signature type');
+		}
+		*/
+
+		// $isCompressed is BOOL
+		$isCompressed = ($recoveryFlags & 4) != 0;
+
+		// $messageHash is BIN
+		//$messageHash = hash('sha256', hash('sha256', "\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message, true), true);
+		// $hash is HEX String
+		$hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
+
+		// Convert from BIN to GMP
+		//$R = PointMathGMP::bin2gmp(substr($signature, 1, 32));
+		//$S = PointMathGMP::bin2gmp(substr($signature, 33, 64));
+
+		// Convert BIN to HEX String
+        $R = gmp_init(bin2hex(substr($signature, 1, 32)), 16);
+        $S = gmp_init(bin2hex(substr($signature, 33, 64)), 16);
+
+		//$hash = PointMathGMP::bin2gmp($messageHash);
+		$hash = gmp_init($hash, 16);
+
+		// $pubkey is Array(HEX String, HEX String)
+		$pubkeyPoint = Signature::recoverPublicKey($R, $S, $hash, $recoveryFlags);
+
+		if ($isCompressed) {
+			$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash(AddressCodec::Compress($pubkeyPoint)), $this->PREFIX);
+		}
+		else{
+			$recoveredAddress = AddressCodec::Hex($pubkeyPoint);
+		}
+		
+		return $address === $recoveredAddress;
+	}
 	
 	/***
 	 * Standard 256 bit hash function : double sha256

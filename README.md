@@ -2,19 +2,36 @@
 
 A collection of common utilities and libraries in PHP for use with Bitcoin and Zetacoin compatable crypto currencies ustilizing the secp256k ECDSA curve.
 
-I doubt most of this works at the moment since I'm still pulling things together.  The current (planned) features include:
+The code may be messy and all over the place, but I'm still pulling things together as I merge this code base with items from the PHPECC codebase.  The current features include:
 
-- Message Signing and verification
+- Private Key Generation and Loading
+- Public Address Print Out
+- Message Signing and Verification
 - Address Generation and Validation
 - Address compression, de-compression, enconding, and de-enconding.
+- Supports Arbitrary Address Prefixes
  
 Currently, the following items are working
 
 - Base58.class.php
+- SECp256k1.class.php
 - PointMathGMP.class.php
+- AddressValidation.class.php
 - AddressCodec.class.php
+- PrivateKey.class.php
+- Signature.class.php
+- Wallet.class.php
 
-The current implementation requires the php5-gmp extension.
+Planned features include:
+
+- Transaction Generation
+- Transaction Signing
+
+No ETA.
+
+## Requirements 
+
+The current implementation requires the php5-gmp extension.  Future version will automaticly detect and switch between GMP and BCMATH
 
 ## Usage
 
@@ -80,6 +97,90 @@ $address = AddressCodec::Encode($hash, "50");
 Gives you:
 ```
 Address = ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed
+```
+
+### Wallet
+
+The Wallet class provides a simple interface to common Zetacoin/Bitcoin (and compatable) functions.  At the moment, the wallet can load a private key, display it's associated receive address, and of course, message signing/verification!
+
+To use this, load the following classes in your PHP code:
+```PHP
+include 'Base58.class.php';
+include 'SECp256k1.class.php';
+include 'PointMathGMP.class.php';
+include 'AddressCodec.class.php';
+include 'PrivateKey.class.php';
+include 'Wallet.class.php';
+include 'Signature.class.php';
+```
+
+First you must generate or specify a PrivateKey:
+```PHP
+$private = new PrivateKey('1234567890abcdefNOTAREALKEY23456789012345678789');
+# Or
+$private = new PrivateKey();
+```
+
+Load this PrivateKey into the Wallet. Optionally set the network prefix (aka address version/prefix) as a HEX, and network name.
+```PHP
+$wallet = new Wallet($private);
+# Setting "Z" for "ZetaCoin" Address version is 80 in decimal. '50' in HEX.
+$wallet->setNetworkPrefix("50");
+$wallet->setNetworkName("ZetaCoin");
+```
+
+Print out your recieve address:
+```PHP
+echo $wallet->getAddress();
+```
+
+Sign a message in pure PHP!!!
+```PHP
+echo $message =  $wallet->signMessage("Test 123");
+```
+
+Puts out something like:
+```
+-----BEGIN ZETACOIN SIGNED MESSAGE-----
+Test 123
+-----BEGIN SIGNATURE-----
+ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed
+H3xQk3IrU9N+KJhrsdJkr5SAXFSeKOuVwMgzoQCSxKSASqdPJaAc0uADkKdlsawXk0FEbn5omQWPdyK1fmCcxGM=
+-----END ZETACOIN SIGNED MESSAGE-----
+```
+
+Verify a signed message using the Satoshi client's standard message signature format. 
+A PrivateKey is not required when you only need to verify signed messsages.
+```PHP
+$message = PHP_EOL;
+$message .= "-----BEGIN ZETACOIN SIGNED MESSAGE-----" . PHP_EOL;
+$message .= "Test 1234" . PHP_EOL;
+$message .= "-----BEGIN SIGNATURE-----" . PHP_EOL;
+$message .= "ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed" . PHP_EOL;
+$message .= "IMv9sGn1Q3UWxV/BBUaWH75/vsRHynvsrJ2wDIO36Xl/k2a39ef1lJNIZ0VySt1Pw6ni3aiQVYQ+wG7OObIRUP0=" . PHP_EOL;
+$message .= "-----END ZETACOIN SIGNED MESSAGE-----";
+
+$wallet = new Wallet();
+$wallet->setNetworkPrefix("50");
+$wallet->setNetworkName("ZetaCoin");
+
+echo $wallet->checkSignatureForRawMessage($message) ? 'Verifies' : 'Fails';
+```
+_Note that the line endings are important since the parser is quite picky at the moment  This will be fixed in a later release._
+
+*Yes, it's pure PHP!*
+
+If you don't want to bother with line endings, yor can feed the components in manually:
+```PHP
+$message = "Test 1234";
+$address = "ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed";
+$signature = "IMv9sGn1Q3UWxV/BBUaWH75/vsRHynvsrJ2wDIO36Xl/k2a39ef1lJNIZ0VySt1Pw6ni3aiQVYQ+wG7OObIRUP0=";
+
+$wallet = new Wallet();
+$wallet->setNetworkPrefix("50");
+$wallet->setNetworkName("ZetaCoin");
+
+echo $wallet->checkSignatureForMessage($address, $signature, $message) ? 'Verifies' : 'Fails';
 ```
 
 The items in the repository may contain some derivative work based on Jan Moritz Lindemann, Matyas Danter, and Joey Hewitt

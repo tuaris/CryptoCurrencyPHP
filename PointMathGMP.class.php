@@ -156,10 +156,10 @@ class PointMathGMP {
      * Computes the result of a point multiplication and returns the resulting point as an Array.
      *
      * @param String Hex $k
-     * @param Array $pG
-     * @param $base
+     * @param Array $pG (GMP, GMP)
+     * @param $base (INT)
      * @throws \Exception
-     * @return Array Point
+     * @return Array Point (GMP, GMP)
      */
     public static function mulPoint($k, Array $pG, $a, $b, $p, $base = null)
     {
@@ -322,5 +322,33 @@ class PointMathGMP {
         else
             return false;
     }
+
+    /***
+     * Returns Negated Point (Y).
+     *
+     * @param $point Array(GMP, GMP)
+     * @return Array(GMP, GMP)
+     */
+	public static function negatePoint($point) { 
+		return array('x' => $point['x'], 'y' => gmp_neg($point['y'])); 
+	}
+
+	// These 2 function don't really belong here.
+
+	// Checks is the given number (DEC String) is even
+	public static function isEvenNumber($number) {
+		return (((int)$number[strlen($number)-1]) & 1) == 0;
+	}
+	// Converts BIN to GMP
+	public static function bin2gmp($binStr) {
+		$v = gmp_init('0');
+
+		for ($i = 0; $i < strlen($binStr); $i++) {
+			$v = gmp_add(gmp_mul($v, 256), ord($binStr[$i]));
+		}
+
+		return $v;
+	}
+
 }
 ?>
