@@ -8,7 +8,7 @@ The code may be messy and all over the place, but I'm still pulling things toget
 - Public Address Print Out
 - Message Signing and Verification
 - Address Generation and Validation
-- Address compression, de-compression, enconding, and de-enconding.
+- Address compression, de-compression, encoding, and decoding.
 - Supports Arbitrary Address Prefixes
  
 Currently, the following items are working
