@@ -1,6 +1,6 @@
 # Crypto Currency for PHP
 
-A collection of common utilities and libraries in PHP for use with Bitcoin and Zetacoin compatable crypto currencies ustilizing the secp256k ECDSA curve.
+A collection of common utilities and libraries in PHP for use with Bitcoin and Zetacoin compatable crypto currencies ustilizing the secp256k ECDSA curve.  Full documentation and extended examples are avialable at: http://www.unibia.com/unibianet/developer/crypto-currency-php-libraries-pure-php-zetacoin-and-bitcoin-compatable-crypto-currencies
 
 The code may be messy and all over the place, but I'm still pulling things together as I merge this code base with items from the PHPECC codebase.  The current features include:
 
@@ -183,4 +183,10 @@ $wallet->setNetworkName("ZetaCoin");
 echo $wallet->checkSignatureForMessage($address, $signature, $message) ? 'Verifies' : 'Fails';
 ```
 
-The items in the repository may contain some derivative work based on Jan Moritz Lindemann, Matyas Danter, and Joey Hewitt
+If you find this usefull, please send me some
+
+Bitcoin: 1B6eyXVRPxdEitW5vWrUnzzXUy6o38P9wN
+
+Zetacoin: ZK6kdE5H5q7H6QRNRAuqLF6RrVD4cFbiNX
+
+*The items in the repository may contain some derivative work based on Jan Moritz Lindemann, Matyas Danter, and Joey Hewitt*
