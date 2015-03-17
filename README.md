@@ -168,9 +168,9 @@ echo $wallet->checkSignatureForRawMessage($message) ? 'Verifies' : 'Fails';
 ```
 _Note that the line endings are important since the parser is quite picky at the moment  This will be fixed in a later release._
 
-*Yes, it's pure PHP!*
+**Yes, it's pure PHP!**
 
-If you don't want to bother with line endings, yor can feed the components in manually:
+If you don't want to bother with line endings, you can feed the components in manually:
 ```PHP
 $message = "Test 1234";
 $address = "ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed";
