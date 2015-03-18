@@ -155,8 +155,6 @@ class Signature {
                      )
              );
 
-
-
         //step 1.3
         $y = null;
         if(1 == $flag % 2) //check if y is even.
@@ -188,18 +186,24 @@ class Signature {
 
         $eG = PointMathGMP::mulPoint($hash, $G, $a, $b, $p);
 
+		$Rinv = gmp_strval(gmp_invert(gmp_init($R, 16), $n), 16);
+
+		// Possible issue
         $eG['y'] = gmp_mod(gmp_neg($eG['y']), $p);
+		// Possible Fix
+		//$eG['y'] = gmp_neg($eG['y']);
 
         $SR = PointMathGMP::mulPoint($S, $Rpt, $a, $b, $p);
 
+		$sR_plus_eGNeg = PointMathGMP::addPoints($SR, $eG, $a, $p);
+
         $pubKey = PointMathGMP::mulPoint(
-                            gmp_strval(gmp_invert(gmp_init($R, 16), $n), 16),
-                            PointMathGMP::addPoints($SR, $eG, $a, $p),
+                            $Rinv,
+                            $sR_plus_eGNeg,
 							$a, 
 							$b, 
 							$p
                   );
-
 
         $pubKey['x'] = gmp_strval($pubKey['x'], 16);
         $pubKey['y'] = gmp_strval($pubKey['y'], 16);
@@ -210,7 +214,12 @@ class Signature {
         while(strlen($pubKey['y']) < 64)
             $pubKey['y'] = '0' . $pubKey['y'];
 
-        $derPubKey = AddressCodec::Compress($pubKey);
+		if($isCompressed){
+			$derPubKey = AddressCodec::Compress($pubKey);
+		}
+		else{
+			$derPubKey = AddressCodec::Hex($pubKey);
+		}
 
         if(self::checkSignaturePoints($derPubKey, $R, $S, $hash)){
             return $derPubKey;
@@ -280,16 +289,23 @@ class Signature {
 
 		// 1.6.1 Compute a candidate public key Q = r^-1 (sR - eG)
 		// $rInv is a DEC String (INT)
-		$rInv = gmp_strval(gmp_invert($R, $n));
+		$rInv = gmp_strval(gmp_invert($R, $n), 16);
+
 		// $eGNeg is Array (GMP, GMP)
 		$eGNeg = PointMathGMP::negatePoint(PointMathGMP::mulPoint($e, $G, $a, $b, $p));
+
+		$sR = PointMathGMP::mulPoint($s, $Rpt, $a, $b, $p);
+
+		$sR_plus_eGNeg = PointMathGMP::addPoints($sR, $eGNeg, $a, $p);
+
 		// $Q is Array (GMP, GMP)
-		$Q = PointMathGMP::mulPoint($rInv, PointMathGMP::addPoints(PointMathGMP::mulPoint($s, $Rpt, $a, $b, $p), $eGNeg, $a, $p), $a, $b, $p);
+		$Q = PointMathGMP::mulPoint($rInv, $sR_plus_eGNeg, $a, $b, $p);
 
 		// Q is the derrived public key
 		// $pubkey is Array (HEX String, HEX String)
-        $pubKey['x'] = gmp_strval($Q['x'], 16);
-        $pubKey['y'] = gmp_strval($Q['y'], 16);
+		// Ensure it's always 64 HEX Charaters
+        $pubKey['x'] = str_pad(gmp_strval($Q['x'], 16), 64, 0, STR_PAD_LEFT);
+        $pubKey['y'] = str_pad(gmp_strval($Q['y'], 16), 64, 0, STR_PAD_LEFT);
 
 		return $pubKey;
 	}

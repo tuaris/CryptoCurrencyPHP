@@ -172,13 +172,13 @@ class Wallet{
     {
         //recover message.
         preg_match_all("#-----BEGIN " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----\n(.{0,})\n-----BEGIN SIGNATURE-----\n#USi", $rawMessage, $out);
-        $message = $out[1][0]; FB::log($message);
+        $message = $out[1][0];
 
         preg_match_all("#\n-----BEGIN SIGNATURE-----\n(.{0,})\n(.{0,})\n-----END " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----#USi", $rawMessage, $out);
-        $address = $out[1][0]; FB::log($address);
-        $signature = $out[2][0]; FB::log($signature);
+        $address = $out[1][0];
+        $signature = $out[2][0];
 
-		// This version fails due to number conversions
+		// Alternate version
         //return $this->checkSignedMessage($address, $signature, $message);
         return $this->checkSignatureForMessage($address, $signature, $message);
     }
@@ -206,12 +206,12 @@ class Wallet{
 
 		// Convert BIN to HEX String
         $R = bin2hex(substr($signature, 1, 32));
-        $S = bin2hex(substr($signature, 33, 64));
+        $S = bin2hex(substr($signature, 33));
 
         $derPubKey = Signature::getPubKeyWithRS($flag, $R, $S, $hash);
         $recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($derPubKey), $this->PREFIX);
 
-		/* This version works most of the time, but still fails due to number conversions
+		/* Alternate version
 		$pubkeyPoint = Signature::recoverPublicKey_HEX($flag, $R, $S, $hash);
 		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash(AddressCodec::Compress($pubkeyPoint)), $this->PREFIX);
 		*/
@@ -227,34 +227,24 @@ class Wallet{
 	public function checkSignedMessage($address, $encodedSignature, $message){
 		// $signature is BIN
 		$signature = base64_decode($encodedSignature, true);
-		
-		// $recoveryFlags is INT
-		//$recoveryFlags = ord($signature[0]) - 27;
-		$recoveryFlags = hexdec(bin2hex(substr($signature, 0, 1)));
 
-		/*
+		// $recoveryFlags is INT
+		$recoveryFlags = ord($signature[0]) - 27;
+
 		if ($recoveryFlags < 0 || $recoveryFlags > 7) {
 			throw new InvalidArgumentException('invalid signature type');
 		}
-		*/
 
 		// $isCompressed is BOOL
 		$isCompressed = ($recoveryFlags & 4) != 0;
 
-		// $messageHash is BIN
-		//$messageHash = hash('sha256', hash('sha256', "\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message, true), true);
 		// $hash is HEX String
 		$hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
 
-		// Convert from BIN to GMP
-		//$R = PointMathGMP::bin2gmp(substr($signature, 1, 32));
-		//$S = PointMathGMP::bin2gmp(substr($signature, 33, 64));
-
 		// Convert BIN to HEX String
         $R = gmp_init(bin2hex(substr($signature, 1, 32)), 16);
-        $S = gmp_init(bin2hex(substr($signature, 33, 64)), 16);
+        $S = gmp_init(bin2hex(substr($signature, 33)), 16);
 
-		//$hash = PointMathGMP::bin2gmp($messageHash);
 		$hash = gmp_init($hash, 16);
 
 		// $pubkey is Array(HEX String, HEX String)

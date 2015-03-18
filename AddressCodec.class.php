@@ -22,18 +22,22 @@ class AddressCodec{
     }
 
     /***
-     * returns the Uncompressed decoded HEX public key point in an array.
+     * returns the public key coordinates as an array.
+	 * Input can be compressed or uncompressed DER Encoded Pubkey
      *
      * @return array
      */
 	public static function Point($derPubKey){
-		if(substr($derPubKey, 0, 2) == '04' && strlen($derPubKey) == 130)
-        {
+		if(substr($derPubKey, 0, 2) == '04' && strlen($derPubKey) == 130){
             //uncompressed der encoded public key
             $x = substr($derPubKey, 2, 64);
             $y = substr($derPubKey, 66, 64);
             return array('x' => $x, 'y' => $y);
         }
+		// Oops This is actually a compressed DER Public Key, send it to the correct function
+		elseif((substr($derPubKey, 0, 2) == '02' || substr($derPubKey, 0, 2) == '03') && strlen($derPubKey) == 66){
+			return self::Decompress($derPubKey);
+		}
         else
         {
             throw new \Exception('Invalid derPubKey format : ' . $compressedDerPubKey);
@@ -49,10 +53,8 @@ class AddressCodec{
      * @return array
      * @throws \Exception
      */
-    public static function Decompress($compressedDerPubKey)
-    {
-        if((substr($compressedDerPubKey, 0, 2) == '02' || substr($compressedDerPubKey, 0, 2) == '03') && strlen($compressedDerPubKey) == 66)
-        {
+    public static function Decompress($compressedDerPubKey) {
+        if((substr($compressedDerPubKey, 0, 2) == '02' || substr($compressedDerPubKey, 0, 2) == '03') && strlen($compressedDerPubKey) == 66){
             //compressed der encoded public key
             $x = substr($compressedDerPubKey, 2, 64);
 			// secp256k1
@@ -64,8 +66,11 @@ class AddressCodec{
             $y = PointMathGMP::calculateYWithX($x, $a, $b, $p, substr($compressedDerPubKey, 0, 2));
             return array('x' => $x, 'y' => $y);
         }
-        else
-        {
+		// OOps.. This is actually a non-compressed DER Public Key, send it to the correct function
+		elseif(substr($compressedDerPubKey, 0, 2) == '04' && strlen($compressedDerPubKey) == 130){
+			return self::Point($compressedDerPubKey);
+		}
+        else{
             throw new \Exception('Invalid compressedDerPubKey format : ' . $compressedDerPubKey);
         }
     }
