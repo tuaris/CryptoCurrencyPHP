@@ -230,10 +230,11 @@ class Signature {
 
     }
 
+	// Same as Below but accepts HEX strings
 	public static function recoverPublicKey_HEX($flag, $R, $S, $hash){
 		return self::recoverPublicKey(gmp_init($R,16), gmp_init($S,16), gmp_init($hash,16), $flag);
 	}
-	
+
 	// $R, $S, and $hash are GMP
 	// $recoveryFlags is INT
 	public static function recoverPublicKey($R, $S, $hash, $recoveryFlags){
@@ -288,7 +289,7 @@ class Signature {
 		$Rpt = array('x' => $x, 'y' => $y);
 
 		// 1.6.1 Compute a candidate public key Q = r^-1 (sR - eG)
-		// $rInv is a DEC String (INT)
+		// $rInv is a HEX String
 		$rInv = gmp_strval(gmp_invert($R, $n), 16);
 
 		// $eGNeg is Array (GMP, GMP)

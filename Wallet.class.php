@@ -251,12 +251,14 @@ class Wallet{
 		$pubkeyPoint = Signature::recoverPublicKey($R, $S, $hash, $recoveryFlags);
 
 		if ($isCompressed) {
-			$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash(AddressCodec::Compress($pubkeyPoint)), $this->PREFIX);
+			$recoveredAddress = AddressCodec::Compress($pubkeyPoint);
 		}
 		else{
 			$recoveredAddress = AddressCodec::Hex($pubkeyPoint);
 		}
-		
+
+		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($recoveredAddress), $this->PREFIX);
+
 		return $address === $recoveredAddress;
 	}
 	
