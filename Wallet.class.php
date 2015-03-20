@@ -9,18 +9,20 @@
 class Wallet{
 
 	private $PRIVATE_KEY;
-	private $PREFIX;
-	private $NETWORK;
+	private $MESSAGE_MAGIC;
+	private $NETWORK_PREFIX;
+	private $NETWORK_NAME;
 
-	public function __construct(PrivateKey $private_key = null, $networkPrefix = '00', $networkName = 'Bitcoin'){
+	public function __construct(PrivateKey $private_key = null, $networkPrefix = '00', $networkName = 'Bitcoin', $messageMagic = null){
 		// Private key
 		if(!empty($private_key)){
 			$this->PRIVATE_KEY = $private_key;
 		}
 
-		// The prefix and network name
+		// The prefix, network name, and message magic
 		$this->setNetworkPrefix($networkPrefix);
 		$this->setNetworkName($networkName);
+		$this->setMessageMagic($messageMagic);
 	}
 
     /***
@@ -31,7 +33,7 @@ class Wallet{
     public function setNetworkPrefix($prefix){
 		// The prefix
 		if(!empty($prefix)){
-			$this->PREFIX = $prefix;
+			$this->NETWORK_PREFIX = $prefix;
 		}
     }
 
@@ -41,18 +43,18 @@ class Wallet{
      * @return String Hex
      */
     public function getNetworkPrefix(){
-        return $this->PREFIX;
+        return $this->NETWORK_PREFIX;
     }
 
     /***
      * Set the network name
      *
-     * @param String Hex $name
+     * @param String $name
      */
     public function setNetworkName($name){
 		// The network name
 		if(!empty($name)){
-			$this->NETWORK = $name;
+			$this->NETWORK_NAME = $name;
 		}
     }
 
@@ -62,7 +64,33 @@ class Wallet{
      * @return String
      */
     public function getNetworkName(){
-        return $this->NETWORK;
+        return $this->NETWORK_NAME;
+    }
+
+    /***
+     * Set the magic message prefix
+     *
+     * @param String $magic
+     */
+    public function setMessageMagic($magic){
+		// The signed message "magic" prefix.
+		if(!empty($magic)){
+			$this->MESSAGE_MAGIC = $magic;
+		}
+		else{
+			// Defaults to "[X] <NetworkName> Signed Message:\n"
+			$default = $this->getNetworkName() . " Signed Message:\n";
+			$this->MESSAGE_MAGIC = $this->numToVarIntString(strlen($default)) . $default;
+		}
+    }
+
+    /**
+     * Returns the current magic message prefix
+     *
+     * @return String
+     */
+    public function getMessageMagic(){
+        return $this->MESSAGE_MAGIC;
     }
 
     /***
@@ -74,7 +102,7 @@ class Wallet{
     public function getAddress(){
 		$PubKeyPoints = $this->getPrivateKey()->getPubKeyPoints();
 		$DERPubkey = AddressCodec::Compress($PubKeyPoints);
-        return AddressCodec::Encode(AddressCodec::Hash($DERPubkey), $this->PREFIX);
+        return AddressCodec::Encode(AddressCodec::Hash($DERPubkey), $this->getNetworkPrefix());
     }
 	
 	public function getUncompressedAddress(){
@@ -103,7 +131,7 @@ class Wallet{
     public function signMessage($message, $compressed = true, $nonce = null)
     {
 
-        $hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)). $message);
+        $hash = $this->hash256($this->getMessageMagic() . $this->numToVarIntString(strlen($message)). $message);
         $points = Signature::getSignatureHashPoints(
                                                 $hash,
 												$this->getPrivateKey()->getPrivateKey(),
@@ -119,7 +147,7 @@ class Wallet{
         while(strlen($S) < 64)
             $S = '0' . $S;
 
-        $res = "\n-----BEGIN " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----\n";
+        $res = "\n-----BEGIN " . strtoupper($this->getNetworkName()) . " SIGNED MESSAGE-----\n";
         $res .= $message;
         $res .= "\n-----BEGIN SIGNATURE-----\n";
         if(true == $compressed)
@@ -157,7 +185,7 @@ class Wallet{
 
 
         $res .= base64_encode(hex2bin(dechex($finalFlag) . $R . $S));
-        $res .= "\n-----END " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----";
+        $res .= "\n-----END " . strtoupper($this->getNetworkName()) . " SIGNED MESSAGE-----";
 
         return $res;
     }
@@ -171,10 +199,10 @@ class Wallet{
     public function checkSignatureForRawMessage($rawMessage)
     {
         //recover message.
-        preg_match_all("#-----BEGIN " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----\n(.{0,})\n-----BEGIN SIGNATURE-----\n#USi", $rawMessage, $out);
+        preg_match_all("#-----BEGIN " . strtoupper($this->getNetworkName()) . " SIGNED MESSAGE-----\n(.{0,})\n-----BEGIN SIGNATURE-----\n#USi", $rawMessage, $out);
         $message = $out[1][0];
 
-        preg_match_all("#\n-----BEGIN SIGNATURE-----\n(.{0,})\n(.{0,})\n-----END " . strtoupper($this->NETWORK) . " SIGNED MESSAGE-----#USi", $rawMessage, $out);
+        preg_match_all("#\n-----BEGIN SIGNATURE-----\n(.{0,})\n(.{0,})\n-----END " . strtoupper($this->getNetworkName()) . " SIGNED MESSAGE-----#USi", $rawMessage, $out);
         $address = $out[1][0];
         $signature = $out[2][0];
 
@@ -194,7 +222,7 @@ class Wallet{
     public function checkSignatureForMessage($address, $encodedSignature, $message)
     {
         // $hash is HEX String
-		$hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
+		$hash = $this->hash256($this->getMessageMagic() . $this->numToVarIntString(strlen($message)) . $message);
 
         //recover flag
 
@@ -209,11 +237,11 @@ class Wallet{
         $S = bin2hex(substr($signature, 33));
 
         $derPubKey = Signature::getPubKeyWithRS($flag, $R, $S, $hash);
-        $recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($derPubKey), $this->PREFIX);
+        $recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($derPubKey), $this->getNetworkPrefix());
 
 		/* Alternate version
 		$pubkeyPoint = Signature::recoverPublicKey_HEX($flag, $R, $S, $hash);
-		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash(AddressCodec::Compress($pubkeyPoint)), $this->PREFIX);
+		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash(AddressCodec::Compress($pubkeyPoint)), $this->getNetworkPrefix());
 		*/
 
         if($address == $recoveredAddress)
@@ -239,7 +267,7 @@ class Wallet{
 		$isCompressed = ($recoveryFlags & 4) != 0;
 
 		// $hash is HEX String
-		$hash = $this->hash256("\x18" . $this->NETWORK . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
+		$hash = $this->hash256("\x19" . $this->getNetworkName() . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
 
 		// Convert BIN to HEX String
         $R = gmp_init(bin2hex(substr($signature, 1, 32)), 16);
@@ -257,8 +285,7 @@ class Wallet{
 			$recoveredAddress = AddressCodec::Hex($pubkeyPoint);
 		}
 
-		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($recoveredAddress), $this->PREFIX);
-
+		$recoveredAddress = AddressCodec::Encode(AddressCodec::Hash($recoveredAddress), $this->getNetworkPrefix());
 		return $address === $recoveredAddress;
 	}
 	
