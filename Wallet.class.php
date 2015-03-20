@@ -270,7 +270,7 @@ class Wallet{
 		$isCompressed = ($recoveryFlags & 4) != 0;
 
 		// $hash is HEX String
-		$hash = $this->hash256("\x19" . $this->getNetworkName() . " Signed Message:\n" . $this->numToVarIntString(strlen($message)) . $message);
+		$hash = $this->hash256($this->getMessageMagic() . $this->numToVarIntString(strlen($message)) . $message);
 
 		// Convert BIN to HEX String
         $R = gmp_init(bin2hex(substr($signature, 1, 32)), 16);
