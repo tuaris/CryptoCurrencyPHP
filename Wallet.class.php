@@ -74,14 +74,7 @@ class Wallet{
      */
     public function setMessageMagic($magic){
 		// The signed message "magic" prefix.
-		if(!empty($magic)){
 			$this->MESSAGE_MAGIC = $magic;
-		}
-		else{
-			// Defaults to "[X] <NetworkName> Signed Message:\n"
-			$default = $this->getNetworkName() . " Signed Message:\n";
-			$this->MESSAGE_MAGIC = $this->numToVarIntString(strlen($default)) . $default;
-		}
     }
 
     /**
@@ -90,7 +83,17 @@ class Wallet{
      * @return String
      */
     public function getMessageMagic(){
-        return $this->MESSAGE_MAGIC;
+		// Check if a custom messageMagic is being used
+		if(!empty($this->MESSAGE_MAGIC)){
+			// Use the custom one.
+			$magic = $this->MESSAGE_MAGIC;
+		}
+		else{
+			// Use the default which is: "[LINE_LEN] [NETWORK_NAME] Signed Message:\n"
+			$default = $this->getNetworkName() . " Signed Message:\n";
+			$magic = $this->numToVarIntString(strlen($default)) . $default;
+		}
+        return $magic;
     }
 
     /***
