@@ -124,9 +124,9 @@ $private = new PrivateKey();
 Load this PrivateKey into the Wallet. Optionally set the network prefix (aka address version/prefix) as a HEX, and network name.
 ```PHP
 $wallet = new Wallet($private);
-# Setting "Z" for "ZetaCoin" Address version is 80 in decimal. '50' in HEX.
+# Setting "Z" for "Zetacoin" Address version is 80 in decimal. '50' in HEX.
 $wallet->setNetworkPrefix("50");
-$wallet->setNetworkName("ZetaCoin");
+$wallet->setNetworkName("Zetacoin");
 ```
 
 Print out your recieve address:
@@ -136,16 +136,16 @@ echo $wallet->getAddress();
 
 Sign a message in pure PHP!!!
 ```PHP
-echo $message =  $wallet->signMessage("Test 123");
+echo $message =  $wallet->signMessage("Test 1234");
 ```
 
 Puts out something like:
 ```
 -----BEGIN ZETACOIN SIGNED MESSAGE-----
-Test 123
+Test 1234
 -----BEGIN SIGNATURE-----
-ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed
-H3xQk3IrU9N+KJhrsdJkr5SAXFSeKOuVwMgzoQCSxKSASqdPJaAc0uADkKdlsawXk0FEbn5omQWPdyK1fmCcxGM=
+ZJFVhALJwWV1uz8m1YoXXyvNqFMu4h7A94
+H7wVT/QJEd3xIonGorLsDxXHg8DE5byo9fcD5h/LHH02KX7nFKjyvH7AE7PjioCQid4qKOjuMh430G37gKIupDc=
 -----END ZETACOIN SIGNED MESSAGE-----
 ```
 
@@ -156,13 +156,13 @@ $message = PHP_EOL;
 $message .= "-----BEGIN ZETACOIN SIGNED MESSAGE-----" . PHP_EOL;
 $message .= "Test 1234" . PHP_EOL;
 $message .= "-----BEGIN SIGNATURE-----" . PHP_EOL;
-$message .= "ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed" . PHP_EOL;
-$message .= "IMv9sGn1Q3UWxV/BBUaWH75/vsRHynvsrJ2wDIO36Xl/k2a39ef1lJNIZ0VySt1Pw6ni3aiQVYQ+wG7OObIRUP0=" . PHP_EOL;
+$message .= "ZJFVhALJwWV1uz8m1YoXXyvNqFMu4h7A94" . PHP_EOL;
+$message .= "H7wVT/QJEd3xIonGorLsDxXHg8DE5byo9fcD5h/LHH02KX7nFKjyvH7AE7PjioCQid4qKOjuMh430G37gKIupDc=" . PHP_EOL;
 $message .= "-----END ZETACOIN SIGNED MESSAGE-----";
 
 $wallet = new Wallet();
 $wallet->setNetworkPrefix("50");
-$wallet->setNetworkName("ZetaCoin");
+$wallet->setNetworkName("Zetacoin");
 
 echo $wallet->checkSignatureForRawMessage($message) ? 'Verifies' : 'Fails';
 ```
@@ -173,12 +173,12 @@ _Note that the line endings are important since the parser is quite picky at the
 If you don't want to bother with line endings, you can feed the components in manually:
 ```PHP
 $message = "Test 1234";
-$address = "ZS67wSwchNQFuTt3abnK4HjpjQ2x79YZed";
-$signature = "IMv9sGn1Q3UWxV/BBUaWH75/vsRHynvsrJ2wDIO36Xl/k2a39ef1lJNIZ0VySt1Pw6ni3aiQVYQ+wG7OObIRUP0=";
+$address = "ZJFVhALJwWV1uz8m1YoXXyvNqFMu4h7A94";
+$signature = "H7wVT/QJEd3xIonGorLsDxXHg8DE5byo9fcD5h/LHH02KX7nFKjyvH7AE7PjioCQid4qKOjuMh430G37gKIupDc=";
 
 $wallet = new Wallet();
 $wallet->setNetworkPrefix("50");
-$wallet->setNetworkName("ZetaCoin");
+$wallet->setNetworkName("Zetacoin");
 
 echo $wallet->checkSignatureForMessage($address, $signature, $message) ? 'Verifies' : 'Fails';
 ```
