@@ -1,6 +1,6 @@
 <?php
 
-/* 
+/*
  * Crypto Currency Message Signing and Verification
  * For Bitcoin/Zetacoin compatable Crypto Currency utilizing the secp256k1 curve
  * @author Daniel Morante
@@ -200,8 +200,8 @@ class Signature {
         $pubKey = PointMathGMP::mulPoint(
                             $Rinv,
                             $sR_plus_eGNeg,
-							$a, 
-							$b, 
+							$a,
+							$b,
 							$p
                   );
 
@@ -254,7 +254,7 @@ class Signature {
 
 		// Precalculate (p + 1) / 4 where p is the field order
 		// $p_over_four is GMP
-		static $p_over_four; // XXX just assuming only one curve/prime will be used
+		$p_over_four = null;
 		if (!$p_over_four) {
 			$p_over_four = gmp_div(gmp_add($p, 1), 4);
 		}
@@ -277,7 +277,7 @@ class Signature {
 		// otherwise we're done and y == beta.
 		if (PointMathGMP::isEvenNumber($beta) == $isYEven) {
 			// gmp_sub function will convert the DEC String "$beta" into a GMP
-			// $y is a GMP 
+			// $y is a GMP
 			$y = gmp_sub($p, $beta);
 		} else {
 			// $y is a GMP
